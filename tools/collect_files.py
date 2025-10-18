@@ -100,7 +100,33 @@ def should_exclude(path: str, exclude_patterns: list[str]) -> bool:
     """
     Returns True if any component of the path matches an exclude pattern.
     """
-    return any(match_pattern(path, pattern, component_matching=True) for pattern in exclude_patterns)
+    norm_path = os.path.normpath(path)
+    parts = norm_path.split(os.sep)
+    # Precompile patterns for efficiency (only in component matching)
+    import re
+
+    regexes = []
+    for pattern in exclude_patterns:
+        if (
+            os.sep not in pattern
+            and "*" not in pattern
+            and "?" not in pattern
+            and "[" not in pattern
+            and "]" not in pattern
+        ):
+            # Fast path: exact match, skip regex fnmatch
+            regexes.append((pattern, None))
+        else:
+            regexes.append((None, re.compile(fnmatch.translate(pattern))))
+    for part in parts:
+        for literal, regex in regexes:
+            if literal is not None:
+                if part == literal:
+                    return True
+            else:
+                if regex.match(part):
+                    return True
+    return False
 
 
 def should_include(path: str, include_patterns: list[str]) -> bool:
