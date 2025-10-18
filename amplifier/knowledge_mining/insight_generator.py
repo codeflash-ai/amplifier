@@ -97,26 +97,42 @@ class InsightGenerator:
     def _generate_warning_insights(self, patterns: list[Pattern]) -> list[Insight]:
         """Generate warning insights from patterns"""
         insights = []
+        # The insight object construction is a hot path.
+        # Localize frequently used constant values to reduce attribute and global lookup overhead
+        warning_type = "warning"
+        description = "This area shows high conceptual complexity with many interconnected concepts."
+        applicable_contexts = ["architecture", "refactoring"]
+        confidence = 0.7
+        action_items = [
+            "Review for simplification opportunities",
+            "Consider breaking into smaller components",
+            "Document complexity reasons",
+        ]
+        # Local variables and constant folding for faster loop execution
+        concept_cluster = "concept_cluster"
+        append_insight = insights.append  # Localize method for faster access
 
-        # Look for anti-patterns or problematic combinations
+        # Use variable assignment outside loop to cut nested attribute lookups
         for pattern in patterns:
-            if pattern.pattern_type == "concept_cluster" and len(pattern.concepts_involved) > 5:
-                # Check for complexity indicators
-                insight = Insight(
-                    type="warning",
-                    title=f"High complexity around {pattern.concepts_involved[0]}",
-                    description="This area shows high conceptual complexity with many interconnected concepts.",
-                    supporting_evidence=[f"{len(pattern.concepts_involved)} related concepts"],
-                    applicable_contexts=["architecture", "refactoring"],
-                    confidence=0.7,
-                    action_items=[
-                        "Review for simplification opportunities",
-                        "Consider breaking into smaller components",
-                        "Document complexity reasons",
-                    ],
-                )
-                insights.append(insight)
-
+            # Short-circuit 'and' condition: check pattern_type first (likely fewer failures)
+            if pattern.pattern_type == concept_cluster:
+                concepts_involved = pattern.concepts_involved
+                n_concepts = len(concepts_involved)
+                if n_concepts > 5:
+                    # Localize frequently accessed concept
+                    first_concept = concepts_involved[0]
+                    evidence = [f"{n_concepts} related concepts"]
+                    # Only reference variables and constants (not dotted-names) in constructor
+                    insight = Insight(
+                        type=warning_type,
+                        title=f"High complexity around {first_concept}",
+                        description=description,
+                        supporting_evidence=evidence,
+                        applicable_contexts=applicable_contexts,
+                        confidence=confidence,
+                        action_items=action_items,
+                    )
+                    append_insight(insight)
         return insights
 
     def _generate_opportunity_insights(self, patterns: list[Pattern]) -> list[Insight]:
