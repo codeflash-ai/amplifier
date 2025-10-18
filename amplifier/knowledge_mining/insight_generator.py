@@ -150,16 +150,19 @@ class InsightGenerator:
         # Heuristic context identification
         concept_text = " ".join(pattern.concepts_involved).lower()
 
-        if any(word in concept_text for word in ["api", "service", "endpoint"]):
-            contexts.append("api_design")
-        if any(word in concept_text for word in ["test", "testing", "qa"]):
-            contexts.append("testing")
-        if any(word in concept_text for word in ["pattern", "architecture", "design"]):
-            contexts.append("architecture")
-        if any(word in concept_text for word in ["data", "database", "storage"]):
-            contexts.append("data_management")
-        if any(word in concept_text for word in ["async", "concurrent", "parallel"]):
-            contexts.append("concurrency")
+        mapping = (
+            (("api", "service", "endpoint"), "api_design"),
+            (("test", "testing", "qa"), "testing"),
+            (("pattern", "architecture", "design"), "architecture"),
+            (("data", "database", "storage"), "data_management"),
+            (("async", "concurrent", "parallel"), "concurrency"),
+        )
+
+        for keywords, ctx in mapping:
+            for word in keywords:
+                if concept_text.find(word) != -1:
+                    contexts.append(ctx)
+                    break
 
         return contexts if contexts else ["general"]
 
