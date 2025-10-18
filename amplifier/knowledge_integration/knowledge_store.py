@@ -362,18 +362,23 @@ class UnifiedKnowledgeStore:
         """Get statistics about the knowledge store."""
         type_counts = {node_type: len(node_ids) for node_type, node_ids in self.type_index.items()}
 
+        # Optimize relationship counting by eliminating sum() using local variables
+        node_count = len(self.nodes)
+        if node_count:
+            total_relationships_per_node = 0
+            # Use local var for attribute lookup performance
+            nodes_values = self.nodes.values()
+            for node in nodes_values:
+                # Use direct attribute access for speed
+                total_relationships_per_node += len(node.relationships_as_subject) + len(node.relationships_as_object)
+            avg_relationships = total_relationships_per_node / node_count
+        else:
+            avg_relationships = 0
+
         return {
-            "total_nodes": len(self.nodes),
+            "total_nodes": node_count,
             "total_relationships": len(self.relationships),
             "total_sources": len(self.processed_sources),
             "nodes_by_type": type_counts,
-            "average_relationships_per_node": (
-                sum(
-                    len(node.relationships_as_subject) + len(node.relationships_as_object)
-                    for node in self.nodes.values()
-                )
-                / len(self.nodes)
-                if self.nodes
-                else 0
-            ),
+            "average_relationships_per_node": avg_relationships,
         }
