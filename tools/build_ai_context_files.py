@@ -18,6 +18,8 @@ import platform
 import re
 import sys
 
+parser = argparse.ArgumentParser(description="Build AI Context Files script that collects project files into markdown.")
+
 OUTPUT_DIR = "ai_context/generated"
 
 # We're running from repo root, so that's our current directory
@@ -31,6 +33,12 @@ sys.path.append(tools_dir)
 # Import the collect_files module
 try:
     import collect_files  # type: ignore
+
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Always overwrite files, even if content unchanged",
+    )
 except ImportError:
     print(f"Error: Could not import collect_files module from {tools_dir}")
     print("Make sure this script is run from the repository root.")
@@ -38,14 +46,6 @@ except ImportError:
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(
-        description="Build AI Context Files script that collects project files into markdown."
-    )
-    parser.add_argument(
-        "--force",
-        action="store_true",
-        help="Always overwrite files, even if content unchanged",
-    )
     return parser.parse_args()
 
 
