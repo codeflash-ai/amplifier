@@ -243,7 +243,9 @@ class KnowledgeStore:
         if source:
             # Get all nodes from a source
             node_ids = self.source_index.get(source, [])
-            results.extend([self.nodes[nid] for nid in node_ids if nid not in [r.id for r in results]])
+            # Optimize exclusion check to O(1) using a set instead of per-iteration search
+            results_ids = {r.id for r in results}
+            results.extend([self.nodes[nid] for nid in node_ids if nid not in results_ids])
 
         return results
 
