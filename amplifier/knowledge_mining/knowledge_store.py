@@ -107,15 +107,25 @@ class KnowledgeStore:
 
         self.nodes[node_id] = node
 
-        # Connect to involved concepts
+        # Fast-path for appending concept connections: defer ._rebuild_indices()
+        append_conn = node.connections.append
+        nodes = self.nodes
+        concept_index = self.concept_index
         for concept_name in pattern.concepts_involved:
-            if concept_name in self.concept_index:
-                concept_id = self.concept_index[concept_name]
-                node.connections.append(concept_id)
-                if concept_id in self.nodes:
-                    self.nodes[concept_id].connections.append(node_id)
+            if concept_name in concept_index:
+                concept_id = concept_index[concept_name]
+                append_conn(concept_id)
+                other_node = nodes.get(concept_id)
+                if other_node is not None:
+                    other_node.connections.append(node_id)
 
-        self._rebuild_indices()
+        # Instead of rebuilding ALL indices on every call, incrementally update affected
+        # The pattern node is newly added; update only the pattern type and sources
+        type_list = self.index[node.type]
+        type_list.append(node_id)
+        for source in node.sources:
+            self.source_index[source].append(node_id)
+
         return node_id
 
     def _add_concept(self, concept: Concept, source: str) -> str:
