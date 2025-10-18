@@ -10,6 +10,18 @@ import sys
 from shutil import which
 from textwrap import dedent
 
+_GUIDANCE_TEXT = """\
+❌  git-collector could not be run.
+
+Fixes:
+  • Global install ……  npm i -g git-collector
+  • Or rely on npx (no install).
+
+Then re-run:  make ai-context-files
+"""
+
+_DEDENTED_GUIDANCE = dedent(_GUIDANCE_TEXT)
+
 OUTPUT_DIR = "ai_context/git_collector"
 
 
@@ -23,17 +35,8 @@ def print_debug_info():
 
 
 def guidance() -> str:
-    return dedent(
-        """\
-        ❌  git-collector could not be run.
-
-        Fixes:
-          • Global install ……  npm i -g git-collector
-          • Or rely on npx (no install).
-
-        Then re-run:  make ai-context-files
-        """
-    )
+    # dedent can be called once at import time to avoid reprocessing on every call
+    return _DEDENTED_GUIDANCE
 
 
 def run(cmd: list[str], capture: bool = True) -> subprocess.CompletedProcess:
