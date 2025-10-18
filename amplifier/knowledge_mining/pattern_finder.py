@@ -146,27 +146,32 @@ class PatternFinder:
     def _find_technique_combinations(self) -> list[Pattern]:
         """Find techniques that are frequently used together"""
         patterns = []
-        technique_pairs = defaultdict(list)
+        technique_words = ("method", "technique", "approach", "pattern", "strategy")
+        technique_pairs = {}
 
-        # Find co-occurring technique concepts
+        # Local fast function to avoid repeated code and partial evaluation
+        def _is_technique(concept: str) -> bool:
+            for word in technique_words:
+                if word in concept:
+                    return True
+            return False
+
+        # Fast path: Only keep relevant co-occurrences
         for (c1, c2), count in self.co_occurrences.items():
-            # Check if both are likely techniques (heuristic) with minimum co-occurrence
-            if (
-                count >= 2
-                and any(word in c1 for word in ["method", "technique", "approach", "pattern", "strategy"])
-                and any(word in c2 for word in ["method", "technique", "approach", "pattern", "strategy"])
-            ):
-                technique_pairs[(c1, c2)].append(count)
+            if count >= 2 and _is_technique(c1) and _is_technique(c2):
+                # Only one count per pair since original code only collects counts to sum
+                technique_pairs[(c1, c2)] = technique_pairs.get((c1, c2), 0) + count
 
-        for (tech1, tech2), counts in technique_pairs.items():
+        # Avoid list with a single element by storing count directly, sum step is skipped
+        for (tech1, tech2), total_count in technique_pairs.items():
             patterns.append(
                 Pattern(
                     pattern_type="technique_combination",
                     description=f"'{tech1}' frequently combined with '{tech2}'",
                     occurrences=[
-                        {"source": "multiple", "context": f"co-occurred {sum(counts)} times"},
+                        {"source": "multiple", "context": f"co-occurred {total_count} times"},
                     ],
-                    strength=min(1.0, sum(counts) / 5),
+                    strength=min(1.0, total_count / 5),
                     concepts_involved=[tech1, tech2],
                 )
             )
