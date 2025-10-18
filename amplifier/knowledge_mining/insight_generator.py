@@ -121,44 +121,38 @@ class InsightGenerator:
 
     def _generate_opportunity_insights(self, patterns: list[Pattern]) -> list[Insight]:
         """Generate opportunity insights from patterns"""
-        insights = []
-
-        for pattern in patterns:
-            if pattern.pattern_type == "principle_application" and len(pattern.concepts_involved) > 3:
-                # Principles with multiple applications suggest opportunities
-                insight = Insight(
-                    type="opportunity",
-                    title=f"Leverage {pattern.concepts_involved[0]} broadly",
-                    description=f"This principle has proven applications in multiple areas. {pattern.description}",
-                    supporting_evidence=[f"Applied to: {', '.join(pattern.concepts_involved[1:4])}"],
-                    applicable_contexts=self._identify_contexts(pattern),
-                    confidence=pattern.strength,
-                    action_items=[
-                        f"Identify where {pattern.concepts_involved[0]} applies",
-                        "Create implementation plan",
-                        "Measure impact",
-                    ],
-                )
-                insights.append(insight)
-
-        return insights
+        return [
+            Insight(
+                type="opportunity",
+                title=f"Leverage {pattern.concepts_involved[0]} broadly",
+                description=f"This principle has proven applications in multiple areas. {pattern.description}",
+                supporting_evidence=[f"Applied to: {', '.join(pattern.concepts_involved[1:4])}"],
+                applicable_contexts=self._identify_contexts(pattern),
+                confidence=pattern.strength,
+                action_items=[
+                    f"Identify where {pattern.concepts_involved[0]} applies",
+                    "Create implementation plan",
+                    "Measure impact",
+                ],
+            )
+            for pattern in patterns
+            if pattern.pattern_type == "principle_application" and len(pattern.concepts_involved) > 3
+        ]
 
     def _identify_contexts(self, pattern: Pattern) -> list[str]:
         """Identify applicable contexts for a pattern"""
         contexts = []
-
-        # Heuristic context identification
         concept_text = " ".join(pattern.concepts_involved).lower()
 
-        if any(word in concept_text for word in ["api", "service", "endpoint"]):
+        if "api" in concept_text or "service" in concept_text or "endpoint" in concept_text:
             contexts.append("api_design")
-        if any(word in concept_text for word in ["test", "testing", "qa"]):
+        if "test" in concept_text or "testing" in concept_text or "qa" in concept_text:
             contexts.append("testing")
-        if any(word in concept_text for word in ["pattern", "architecture", "design"]):
+        if "pattern" in concept_text or "architecture" in concept_text or "design" in concept_text:
             contexts.append("architecture")
-        if any(word in concept_text for word in ["data", "database", "storage"]):
+        if "data" in concept_text or "database" in concept_text or "storage" in concept_text:
             contexts.append("data_management")
-        if any(word in concept_text for word in ["async", "concurrent", "parallel"]):
+        if "async" in concept_text or "concurrent" in concept_text or "parallel" in concept_text:
             contexts.append("concurrency")
 
         return contexts if contexts else ["general"]
