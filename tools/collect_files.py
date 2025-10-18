@@ -39,16 +39,12 @@ def resolve_pattern(pattern: str) -> str:
     Resolves a pattern that might contain relative path navigation.
     Returns the absolute path of the pattern.
     """
-    # Convert the pattern to a Path object
-    pattern_path = pathlib.Path(pattern)
+    # Fast path: simple patterns without navigation or not absolute
+    if not os.path.isabs(pattern) and ".." not in pattern:
+        return pattern
 
-    # Check if the pattern is absolute or contains relative navigation
-    if os.path.isabs(pattern) or ".." in pattern:
-        # Resolve to absolute path
-        return str(pattern_path.resolve())
-
-    # For simple patterns without navigation, return as is
-    return pattern
+    # Defer pathlib.Path creation unless absolutely necessary
+    return str(pathlib.Path(pattern).resolve())
 
 
 def match_pattern(path: str, pattern: str, component_matching=False) -> bool:
