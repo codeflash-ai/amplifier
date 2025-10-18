@@ -160,7 +160,7 @@ class ArticleProcessor:
     def __init__(
         self,
         extractor: "UnifiedKnowledgeExtractor | None" = None,
-        status_store: ProcessingStatusStore | None = None,
+        status_store: "ProcessingStatusStore | None" = None,
         use_focused_extractors: bool = True,
     ):
         """Initialize resilient miner.
@@ -757,29 +757,17 @@ class ArticleProcessor:
         """
         all_statuses = self.status_store.get_all_statuses()
 
-        # Categorize articles
         complete = []
         partial = []
         failed = []
         needs_retry = []
 
-        for status in all_statuses:
-            if status.is_complete:
-                complete.append(status)
-            else:
-                # Count successful processors
-                success_count = sum(1 for r in status.processor_results.values() if r.status in ["success", "empty"])
+        # Reduce failed/partial/needs_retry logic passes to one status.processor_results iteration
+        # Pre-allocate generators and membership tests for performance
+        _success_statuses = {"success", "empty"}
+        _processor_names = {"concepts", "relationships", "insights", "patterns"}
 
-                if success_count == 0:
-                    failed.append(status)
-                    needs_retry.append(status)
-                else:
-                    partial.append(status)
-                    # Only retry if some processors failed
-                    if any(r.status == "failed" for r in status.processor_results.values()):
-                        needs_retry.append(status)
-
-        # Calculate processor-level stats
+        # Pre-create processor_stats to avoid repeatedly looking up dicts
         processor_stats = {
             "concepts": {"success": 0, "failed": 0, "empty": 0},
             "relationships": {"success": 0, "failed": 0, "empty": 0},
@@ -787,10 +775,46 @@ class ArticleProcessor:
             "patterns": {"success": 0, "failed": 0, "empty": 0},
         }
 
+        # Use local variable lookup for slight speedup
+        append_complete = complete.append
+        append_partial = partial.append
+        append_failed = failed.append
+        append_retry = needs_retry.append
+
         for status in all_statuses:
+            # Precompute processor_results values once for efficiency
+            pr_values = status.processor_results.values()
+
+            # For processor_stats, incorporate stats in a single pass
             for processor_name, result in status.processor_results.items():
-                if processor_name in processor_stats and result.status in processor_stats[processor_name]:
-                    processor_stats[processor_name][result.status] += 1
+                if processor_name in processor_stats:
+                    if result.status in processor_stats[processor_name]:
+                        processor_stats[processor_name][result.status] += 1
+
+            # Now sort statuses
+            if status.is_complete:
+                append_complete(status)
+                continue
+
+            success_count = 0
+            failed_found = False
+            for r in pr_values:
+                if r.status in _success_statuses:
+                    success_count += 1
+                if not failed_found and r.status == "failed":
+                    failed_found = True
+
+            if success_count == 0:
+                append_failed(status)
+                append_retry(status)
+            else:
+                append_partial(status)
+                if failed_found:
+                    append_retry(status)
+
+        # Construct failed and needs_retry summaries only if nonempty
+        failed_articles = [{"id": s.article_id, "title": s.title} for s in failed[:10]] if failed else []
+        needs_retry_articles = [{"id": s.article_id, "title": s.title} for s in needs_retry[:10]] if needs_retry else []
 
         return {
             "summary": {
@@ -802,8 +826,8 @@ class ArticleProcessor:
             },
             "extraction_stats": self.stats,
             "processor_stats": processor_stats,
-            "failed_articles": [{"id": s.article_id, "title": s.title} for s in failed[:10]],  # First 10
-            "needs_retry": [{"id": s.article_id, "title": s.title} for s in needs_retry[:10]],  # First 10
+            "failed_articles": failed_articles,  # First 10
+            "needs_retry": needs_retry_articles,  # First 10
         }
 
     async def process_batch_with_retry(
