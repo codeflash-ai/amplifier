@@ -48,26 +48,34 @@ class InsightGenerator:
 
     def _generate_solution_insights(self, patterns: list[Pattern]) -> list[Insight]:
         """Generate solution-type insights from patterns"""
+        # Reuse local references for class attributes, functions, and cached types
         insights = []
+        Insight = globals().get("Insight")
+        append = insights.append
 
         for pattern in patterns:
             if pattern.pattern_type == "technique_combination":
-                # Techniques used together suggest solutions
+                concepts = pattern.concepts_involved
+                occurrences = pattern.occurrences
+                # Avoid repeated attribute lookups and object creation
+                supporting_evidence = [f"Pattern strength: {pattern.strength:.2f}"]
+                for occ in occurrences[:3]:
+                    supporting_evidence.append(occ["context"])
+
                 insight = Insight(
                     type="solution",
-                    title=f"Combine {pattern.concepts_involved[0]} with {pattern.concepts_involved[1]}",
+                    title=f"Combine {concepts[0]} with {concepts[1]}",
                     description=f"These techniques are frequently used together successfully. {pattern.description}",
-                    supporting_evidence=[f"Pattern strength: {pattern.strength:.2f}"]
-                    + [occ["context"] for occ in pattern.occurrences[:3]],
+                    supporting_evidence=supporting_evidence,
                     applicable_contexts=self._identify_contexts(pattern),
                     confidence=pattern.strength,
                     action_items=[
-                        f"Implement {pattern.concepts_involved[0]}",
-                        f"Integrate with {pattern.concepts_involved[1]}",
+                        f"Implement {concepts[0]}",
+                        f"Integrate with {concepts[1]}",
                         "Test the combination",
                     ],
                 )
-                insights.append(insight)
+                append(insight)
 
         return insights
 
@@ -145,20 +153,20 @@ class InsightGenerator:
 
     def _identify_contexts(self, pattern: Pattern) -> list[str]:
         """Identify applicable contexts for a pattern"""
-        contexts = []
-
-        # Heuristic context identification
+        # Precompute word sets for efficiency
         concept_text = " ".join(pattern.concepts_involved).lower()
+        contexts = []
+        text_words = set(concept_text.split())
 
-        if any(word in concept_text for word in ["api", "service", "endpoint"]):
+        if text_words & {"api", "service", "endpoint"}:
             contexts.append("api_design")
-        if any(word in concept_text for word in ["test", "testing", "qa"]):
+        if text_words & {"test", "testing", "qa"}:
             contexts.append("testing")
-        if any(word in concept_text for word in ["pattern", "architecture", "design"]):
+        if text_words & {"pattern", "architecture", "design"}:
             contexts.append("architecture")
-        if any(word in concept_text for word in ["data", "database", "storage"]):
+        if text_words & {"data", "database", "storage"}:
             contexts.append("data_management")
-        if any(word in concept_text for word in ["async", "concurrent", "parallel"]):
+        if text_words & {"async", "concurrent", "parallel"}:
             contexts.append("concurrency")
 
         return contexts if contexts else ["general"]
