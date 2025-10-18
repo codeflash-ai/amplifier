@@ -31,7 +31,10 @@ DEFAULT_EXCLUDE = [".venv", "node_modules", "*.lock", ".git", "__pycache__", "*.
 
 def parse_patterns(pattern_str: str) -> list[str]:
     """Splits a comma-separated string into a list of stripped patterns."""
-    return [p.strip() for p in pattern_str.split(",") if p.strip()]
+    # Optimization: Avoid repeated calls to .strip() on items and in the if clause.
+    # This processes the split result once for each element, storing the stripped value,
+    # and filters out empty results in a single pass.
+    return [stripped for p in pattern_str.split(",") if (stripped := p.strip())]
 
 
 def resolve_pattern(pattern: str) -> str:
