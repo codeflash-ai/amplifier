@@ -80,14 +80,27 @@ class Synthesizer:
         cooccurrences = patterns.get("cooccurrences", {})
 
         high_freq_concepts = [c for c, freq in concepts.items() if freq >= 3]
+        n = len(high_freq_concepts)
+        if n < 2:
+            return insights
 
-        for i, c1 in enumerate(high_freq_concepts):
-            for c2 in high_freq_concepts[i + 1 :]:
-                pair = tuple(sorted([c1, c2]))
-                cooccur_count = sum(1 for (p1, p2), _ in cooccurrences.items() if pair == tuple(sorted([p1, p2])))
+        # Optimization: Build a set of all cooccurring pairs for O(1) lookups
+        cooccur_pairs = set()
+        for pair in cooccurrences:
+            # Store sorted tuple for consistent matching
+            cooccur_pairs.add(tuple(sorted(pair)))
 
-                if cooccur_count == 0:  # High frequency but never together
-                    insights.append(
+        # Use list comprehension & iterative loop for efficiency
+        append = insights.append  # minor optimization for faster append
+
+        # Avoid redundant sorted() calls and speed up lookup using set
+        for i in range(n):
+            c1 = high_freq_concepts[i]
+            for j in range(i + 1, n):
+                c2 = high_freq_concepts[j]
+                pair = (c1, c2) if c1 < c2 else (c2, c1)
+                if pair not in cooccur_pairs:  # High frequency but never together
+                    append(
                         {
                             "type": "divergence",
                             "insight": f"'{c1}' and '{c2}' represent separate approaches",
