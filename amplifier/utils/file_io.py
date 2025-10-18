@@ -29,15 +29,17 @@ def _handle_io_error(attempt: int, max_retries: int = 3) -> bool:
 
     # Show warning once per session
     if not _cloud_sync_warning_shown:
-        logger.warning(
-            "File I/O error detected (likely OneDrive/cloud sync interference). "
-            "Consider pausing cloud sync or excluding this directory from sync."
-        )
+        if logger.isEnabledFor(30):  # WARNING level
+            logger.warning(
+                "File I/O error detected (likely OneDrive/cloud sync interference). "
+                "Consider pausing cloud sync or excluding this directory from sync."
+            )
         _cloud_sync_warning_shown = True
 
     # Exponential backoff: 0.1s, 0.2s, 0.4s
     wait_time = 0.1 * (2**attempt)
-    logger.debug(f"Retrying file operation in {wait_time}s (attempt {attempt + 1}/{max_retries})")
+    if logger.isEnabledFor(10):  # DEBUG level
+        logger.debug(f"Retrying file operation in {wait_time}s (attempt {attempt + 1}/{max_retries})")
     time.sleep(wait_time)
     return True
 
