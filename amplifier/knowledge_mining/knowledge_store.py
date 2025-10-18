@@ -285,24 +285,39 @@ class KnowledgeStore:
 
     def get_statistics(self) -> dict[str, Any]:
         """Get statistics about the knowledge store"""
+        # Localize lookups for performance
+        nodes = self.nodes
+        index = self.index
+        concept_index = self.concept_index
+        source_index = self.source_index
+
+        # Fast path for sum of all connections across all nodes
+        total_connections = 0
+        nodes_values = nodes.values()
+        for n in nodes_values:
+            total_connections += len(n.connections)
+
         stats: dict[str, Any] = {
-            "total_nodes": len(self.nodes),
-            "concepts": len(self.concept_index),
-            "insights": len(self.index.get("insight", [])),
-            "code_patterns": len(self.index.get("code", [])),
-            "patterns": len(self.index.get("pattern", [])),
-            "sources": len(self.source_index),
-            "total_connections": sum(len(n.connections) for n in self.nodes.values()),
+            "total_nodes": len(nodes),
+            "concepts": len(concept_index),
+            "insights": len(index.get("insight", [])),
+            "code_patterns": len(index.get("code", [])),
+            "patterns": len(index.get("pattern", [])),
+            "sources": len(source_index),
+            "total_connections": total_connections,
         }
 
         # Category breakdown
         categories: dict[str, int] = {}
-        for node_id in self.index.get("concept", []):
-            node = self.nodes[node_id]
+
+        # Localize lookups, hoist references
+        get_concept = index.get("concept", [])
+        nodes_get = nodes.__getitem__
+        for node_id in get_concept:
+            node = nodes_get(node_id)
             category = node.metadata.get("category", "unknown")
-            if category not in categories:
-                categories[category] = 0
-            categories[category] += 1
+            # Use setdefault to avoid repeated key existence checks
+            categories[category] = categories.get(category, 0) + 1
         stats["categories"] = categories
 
         return stats
