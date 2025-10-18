@@ -7,6 +7,8 @@ import time
 from pathlib import Path
 from urllib.parse import urlparse
 
+_UNSAFE_CHARS_RE = re.compile(r'[<>:"|?*]')
+
 # Add parent directory to path to import amplifier modules
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
 
@@ -122,11 +124,12 @@ def url_to_filename(url: str) -> str:
 
     # Clean filename for filesystem
     # Remove or replace problematic characters
-    filename = re.sub(r'[<>:"|?*]', "_", filename)
+    filename = _UNSAFE_CHARS_RE.sub("_", filename)
 
     # Remove any file extension and add .md
-    if "." in filename:
-        filename = filename.rsplit(".", 1)[0]
+    dot_index = filename.rfind(".")
+    if dot_index != -1:
+        filename = filename[:dot_index]
 
     # Limit length to avoid filesystem issues
     if len(filename) > 100:
