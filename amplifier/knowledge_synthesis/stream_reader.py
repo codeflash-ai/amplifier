@@ -100,20 +100,31 @@ class StreamReader:
         if not self.window:
             return []
 
-        # Count recent concepts
+        # Count recent concepts (optimized for fewer allocations)
         recent_concepts = Counter()
-        for article in list(self.window)[-3:]:  # Last 3 articles
-            for concept in article.get("concepts", []):
-                name = concept.get("name", "")
-                if name:
-                    recent_concepts[name] += 1
+        # Directly slice the window for last 3 articles without converting to list
+        articles = self.window
+        articles_len = len(articles)
+        # Use memoryview-style indexing on deque when articles are short or full
+        start_idx = max(articles_len - 3, 0)
+        for i in range(start_idx, articles_len):
+            article = articles[i]
+            concepts = article.get("concepts")
+            if concepts:
+                for concept in concepts:
+                    name = concept.get("name")
+                    if name:
+                        recent_concepts[name] += 1
 
-        # Find concepts with increased frequency
+        # Precompute denominator for frequency ratio to avoid recalculating
+        window_len = articles_len if articles_len else 1
+
+        # Find concepts with increased frequency (avoid repeated lookups)
         emerging = []
         for concept, recent_count in recent_concepts.items():
             overall_freq = self.concept_freq.get(concept, 0)
             if overall_freq > 0:
-                increase_ratio = recent_count / (overall_freq / max(len(self.window), 1))
+                increase_ratio = recent_count / (overall_freq / window_len)
                 if increase_ratio > (1 + threshold):
                     emerging.append(concept)
 
