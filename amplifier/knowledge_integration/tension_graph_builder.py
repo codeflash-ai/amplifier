@@ -102,7 +102,9 @@ class TensionGraphBuilder:
     def __init__(self, storage_path: Path | None = None):
         """Initialize the tension graph builder."""
         self.storage_path = storage_path or Path(".data/knowledge/tension_graph.json")
-        self.storage_path.parent.mkdir(parents=True, exist_ok=True)
+        parent_dir = self.storage_path.parent
+        if not parent_dir.exists():
+            parent_dir.mkdir(parents=True, exist_ok=True)
 
         # Core graph structures
         self.nodes: dict[str, PerspectiveNode] = {}
@@ -344,7 +346,7 @@ class TensionGraphBuilder:
 
     def _normalize_predicate(self, predicate: str) -> str:
         """Normalize predicate to 1-3 words."""
-        words = predicate.lower().strip().split()
+        words = predicate.lower().strip().split(None, 3)
         return " ".join(words[:3])
 
     def _get_or_create_node(self, name: str, perspective_id: str, weight: float = 0.5) -> str:
