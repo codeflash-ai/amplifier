@@ -7,6 +7,7 @@ in various scenarios.
 """
 
 import sys
+from itertools import islice
 from pathlib import Path
 
 # Add parent directory to path for imports
@@ -77,7 +78,9 @@ def example_scan_content():
 
     # Scan for markdown files
     for content_dir in content_dirs:
-        md_files = list(content_dir.glob("**/*.md"))[:5]  # Limit to 5 for example
+        # Use iterator and islice for efficiency (only fetch first 5 .md files)
+        md_iter = content_dir.glob("**/*.md")
+        md_files = list(islice(md_iter, 5))  # Limit to 5 for example
 
         if md_files:
             print(f"\nMarkdown files in {content_dir}:")
