@@ -54,7 +54,7 @@ class ContentLoader:
 
         Uses SHA256 hash of the absolute path for consistency.
         """
-        path_str = str(file_path.resolve())
+        path_str = str(file_path if file_path.is_absolute() else file_path.resolve())
         return hashlib.sha256(path_str.encode()).hexdigest()[:16]
 
     def _extract_title(self, content: str, file_path: Path, format: str) -> str:
