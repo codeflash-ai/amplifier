@@ -66,6 +66,10 @@ def match_pattern(path: str, pattern: str, component_matching=False) -> bool:
     """
     # For simple exclude-style component matching
     if component_matching:
+        # Fast path for plain string patterns without wildcards
+        if "*" not in pattern and "?" not in pattern and "[" not in pattern and "]" not in pattern:
+            return pattern in os.path.normpath(path).split(os.sep)
+        
         parts = os.path.normpath(path).split(os.sep)
         return any(fnmatch.fnmatch(part, pattern) for part in parts)
 
