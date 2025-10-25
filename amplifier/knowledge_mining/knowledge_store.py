@@ -107,6 +107,11 @@ class KnowledgeStore:
 
         self.nodes[node_id] = node
 
+        # Update indices incrementally instead of rebuilding all
+        self.index[node.type].append(node_id)
+        for source in node.sources:
+            self.source_index[source].append(node_id)
+
         # Connect to involved concepts
         for concept_name in pattern.concepts_involved:
             if concept_name in self.concept_index:
@@ -115,7 +120,6 @@ class KnowledgeStore:
                 if concept_id in self.nodes:
                     self.nodes[concept_id].connections.append(node_id)
 
-        self._rebuild_indices()
         return node_id
 
     def _add_concept(self, concept: Concept, source: str) -> str:
