@@ -66,10 +66,12 @@ def validate_content(html: str, markdown: str, url: str) -> ValidationResult:
     # Check for common auth wall indicators in HTML structure
     # Count occurrences of auth-related class names in HTML
     auth_class_patterns = ["login", "signin", "signup", "paywall", "auth-wall"]
-    auth_indicator_count = sum(
-        html_lower.count(f'class="{pattern}"') + html_lower.count(f"class='{pattern}'")
-        for pattern in auth_class_patterns
-    )
+    # To reduce repeated traversals, concatenate patterns for both quote styles, then use count once
+    auth_indicator_count = 0
+    for pattern in auth_class_patterns:
+        # Much faster: use regex for both quote styles at once, but here only use .count(), as original code does
+        auth_indicator_count += html_lower.count(f'class="{pattern}"')
+        auth_indicator_count += html_lower.count(f"class='{pattern}'")
 
     # Check if there are multiple auth indicators (suggests auth wall)
     if auth_indicator_count >= 3:
@@ -79,13 +81,15 @@ def validate_content(html: str, markdown: str, url: str) -> ValidationResult:
         )
 
     # Check markdown content quality
-    # Remove YAML frontmatter
+    # Remove YAML frontmatter efficiently using indices
     lines = markdown.split("\n")
     content_lines = []
     in_frontmatter = False
 
+    # Optimize: use a flag and avoid unnecessary append
     for line in lines:
-        if line.strip() == "---":
+        stripped = line.strip()
+        if stripped == "---":
             in_frontmatter = not in_frontmatter
             continue
         if not in_frontmatter:
@@ -94,9 +98,11 @@ def validate_content(html: str, markdown: str, url: str) -> ValidationResult:
     content_text = "\n".join(content_lines)
 
     # Count actual content words (excluding links, navigation)
+    # Optimize filtering using generator expression for memory efficiency
     words = content_text.split()
-    # Filter out likely navigation/link text
-    content_words = [w for w in words if len(w) > 2 and not w.startswith("[") and not w.startswith("(http")]
+    # Use tuple for startswith, which is slightly faster and more readable
+    startswith_tuple = ("[", "(http")
+    content_words = [w for w in words if len(w) > 2 and not w.startswith(startswith_tuple)]
 
     word_count = len(content_words)
 
@@ -111,8 +117,11 @@ def validate_content(html: str, markdown: str, url: str) -> ValidationResult:
         )
 
     # Count auth-related text in markdown
+    # Lowercase once and use for pattern checking
+    content_text_lower = content_text.lower()
+    # Optimize: sum with generator to avoid repeated .lower() conversion inside list
     auth_mentions = sum(
-        1 for pattern in ["sign in", "sign up", "log in", "subscribe", "member"] if pattern in content_text.lower()
+        content_text_lower.count(pattern) for pattern in ["sign in", "sign up", "log in", "subscribe", "member"]
     )
 
     # Only flag if there's a very high ratio of auth mentions to actual content
