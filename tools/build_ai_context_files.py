@@ -18,6 +18,8 @@ import platform
 import re
 import sys
 
+_DATE_LINE_RE = re.compile(r"^\*\*Date:\*\*.*\n?", flags=re.MULTILINE)
+
 OUTPUT_DIR = "ai_context/generated"
 
 # We're running from repo root, so that's our current directory
@@ -60,7 +62,7 @@ def ensure_directory_exists(file_path) -> None:
 def strip_date_line(text: str) -> str:
     """Remove any '**Date:** …' line so we can compare content ignoring timestamps."""
     # Remove the entire line that begins with **Date:**
-    return re.sub(r"^\*\*Date:\*\*.*\n?", "", text, flags=re.MULTILINE)
+    return _DATE_LINE_RE.sub("", text)
 
 
 def build_context_files(force=False) -> None:
