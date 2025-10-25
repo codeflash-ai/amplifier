@@ -33,6 +33,8 @@ class AITestRunner:
         self.passed = 0
         self.failed = 0
         self.skipped = 0
+        # Cache test env once per runner instance to avoid repeated calls
+        self._env = config.get_test_env()
 
     def load_tests(self) -> list:
         """Load test definitions from YAML."""
@@ -49,7 +51,7 @@ class AITestRunner:
                 capture_output=True,
                 text=True,
                 timeout=timeout,
-                env=config.get_test_env(),
+                env=self._env,  # Use cached env
             )
             output = result.stdout + "\n" + result.stderr
             return result.returncode, output
