@@ -251,7 +251,8 @@ class UnifiedKnowledgeStore:
     def get_nodes_by_type(self, node_type: str) -> list[UnifiedKnowledgeNode]:
         """Get all nodes of a specific type."""
         node_ids = self.type_index.get(node_type, [])
-        return [self.nodes[node_id] for node_id in node_ids]
+        nodes = self.nodes
+        return [nodes[node_id] for node_id in node_ids]
 
     def get_relationships_for_node(self, name: str) -> list[Relationship]:
         """Get all relationships involving a node."""
