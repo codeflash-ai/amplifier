@@ -69,13 +69,15 @@ class ArticleProcessingStatus:
     @classmethod
     def from_dict(cls, data: dict) -> "ArticleProcessingStatus":
         """Create from dictionary."""
+        processor_results = {}
+        for name, result_data in data["processor_results"].items():
+            processor_results[name] = ProcessorResult(**result_data)
+
         return cls(
             article_id=data["article_id"],
             title=data["title"],
             last_processed=datetime.fromisoformat(data["last_processed"]),
-            processor_results={
-                name: ProcessorResult(**result_data) for name, result_data in data["processor_results"].items()
-            },
+            processor_results=processor_results,
             is_complete=data["is_complete"],
         )
 
