@@ -126,14 +126,12 @@ class SubagentMapper:
                 prompt = input_data.get("prompt", "")
 
                 if prompt:
-                    # Normalize and hash the prompt
-                    normalized = self._normalize_prompt(prompt)
-                    prompt_hash = self._hash_prompt(normalized)
+                    # Inline normalization to avoid function call overhead
+                    normalized = " ".join(prompt.split())
+                    prompt_hash = hashlib.sha256(normalized.encode("utf-8")).hexdigest()
 
-                    # Add to index
-                    if prompt_hash not in self._task_index:
-                        self._task_index[prompt_hash] = []
-                    self._task_index[prompt_hash].append((session_id, subagent_type, prompt))
+                    # Use setdefault for efficient dictionary operation
+                    self._task_index.setdefault(prompt_hash, []).append((session_id, subagent_type, prompt))
 
     def _match_sessions_to_tasks(self):
         """Match sessions to tasks based on first user message"""
